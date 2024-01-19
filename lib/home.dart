@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      home: WaveformsDashboard(scope: 5.5),
+      home: WaveformsDashboard(scope: 0.5),
     );
   }
 }
@@ -66,7 +66,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     final json = await rootBundle.loadString(audioData[0]);
     Map<String, dynamic> audioDataMap = {
       "json": json,
-      "totalSamples": 256,
+      "totalSamples": maxDuration.inSeconds,
     };
     final samplesData = await compute(loadparseJson, audioDataMap);
 
@@ -75,7 +75,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     });
   }
 
-  Duration maxDuration = const Duration(seconds: 100);
+  Duration maxDuration = const Duration(seconds: 1000);
   late ValueListenable<Duration> progress;
 
   Future<void> playAudio() async {
@@ -107,14 +107,21 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     audioPlayer.onPositionChanged.listen((Duration p) {
       setState(() {
         int second = p.inMicroseconds;
-        print("Current SECOND ${p.inSeconds}");
+
         double secondP = second * 100 / maxDuration.inMicroseconds;
+        print("-------");
+        print(
+            "Current SECOND ${p.inSeconds} of ${maxDuration.inSeconds} : $secondP %");
+
         double distanceC = distance * secondP / 100;
+        print(
+            "Distance: ${distance - distanceC} of $distance :${distanceC * 100 / distance} %");
+
         right = distance - distanceC;
         elapsedDuration = p;
-        sliderValue = p.inMicroseconds * 100 / maxDuration.inMicroseconds;
       });
     });
+    totalSamples = maxDuration.inSeconds;
   }
 
   @override
@@ -126,18 +133,17 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     );
   }
 
-  void updatePosition(DragUpdateDetails details) {
+  Future<void> updatePosition(DragUpdateDetails details) async {
     if (right - details.delta.dx > (-width) &&
         right - details.delta.dx < width) {
-      // double width = MediaQuery.of(context).size.width * 0.5;
-      right -= details.delta.dx;
       double number = right + width;
-
       double percentage = (number / width) * 100;
-      int second = calculatePercentage(maxDuration.inSeconds, percentage);
-      audioPlayer.seek(Duration(seconds: second));
 
-      audioPlayer.seek(Duration(seconds: second));
+      print("MANA ${details.localPosition.dx}");
+
+      int second = calculatePercentage(maxDuration.inSeconds, percentage);
+      await audioPlayer.seek(Duration(seconds: second));
+      right -= details.delta.dx;
     }
     setState(() {
       // Update position on drag
@@ -156,18 +162,23 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
             Stack(
               children: [
                 AnimatedPositioned(
-                  duration: const Duration(milliseconds: 1),
+                  duration: const Duration(microseconds: 1),
                   right: right,
                   child: GestureDetector(
                     onHorizontalDragUpdate: updatePosition,
                     onTap: () {},
                     child: Align(
                       alignment: Alignment.center,
-                      child: SquigglyWaveformExample(
-                        maxDuration: maxDuration,
-                        elapsedDuration: elapsedDuration,
-                        samples: samples,
-                        waveformCustomizations: waveformCustomizations,
+                      child: Column(
+                        children: [
+                          SquigglyWaveformExample(
+                            maxDuration: maxDuration,
+                            elapsedDuration: elapsedDuration,
+                            samples: samples,
+                            waveformCustomizations: waveformCustomizations,
+                          ),
+                          SizedBox(height: 30),
+                        ],
                       ),
                     ),
                   ),
@@ -181,7 +192,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                       color: const Color(0xff007AF5),
                     ),
                   ),
-                )
+                ),
               ],
             ),
             Row(
@@ -216,9 +227,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                     setState(() {
                       sliderValue = 0;
                       audioPlayer.seek(const Duration(milliseconds: 0));
-                      right = -(window.physicalSize.shortestSide /
-                          window.devicePixelRatio *
-                          0.5);
+                      right = distance;
                     });
                   },
                   child: const Icon(Icons.replay_outlined),
@@ -255,11 +264,11 @@ class SquigglyWaveformExample extends StatelessWidget {
       elapsedDuration: elapsedDuration,
       samples: samples,
       height: waveformCustomizations.height,
-      width: waveformCustomizations.width * 6,
-      inactiveColor: const Color(0xff007AF5).withOpacity(0.2),
+      width: waveformCustomizations.width,
+      inactiveColor: waveformCustomizations.inactiveColor,
       invert: waveformCustomizations.invert,
       absolute: waveformCustomizations.absolute,
-      activeColor: const Color(0xff007AF5),
+      activeColor: waveformCustomizations.activeColor,
       showActiveWaveform: waveformCustomizations.showActiveWaveform,
       strokeWidth: waveformCustomizations.borderWidth,
     );
