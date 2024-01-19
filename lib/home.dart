@@ -133,17 +133,18 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     );
   }
 
-  Future<void> updatePosition(DragUpdateDetails details) async {
+  void updatePosition(DragUpdateDetails details) {
     if (right - details.delta.dx > (-width) &&
         right - details.delta.dx < width) {
-      double number = right + width;
-      double percentage = (number / width) * 100;
-
-      print("MANA ${details.localPosition.dx}");
-
-      int second = calculatePercentage(maxDuration.inSeconds, percentage);
-      await audioPlayer.seek(Duration(seconds: second));
+      // double width = MediaQuery.of(context).size.width * 0.5;
       right -= details.delta.dx;
+      double number = right + width;
+
+      double percentage = (number / width) * 100;
+      int second = calculatePercentage(maxDuration.inSeconds, percentage);
+      audioPlayer.seek(Duration(seconds: second));
+
+      audioPlayer.seek(Duration(seconds: second));
     }
     setState(() {
       // Update position on drag
