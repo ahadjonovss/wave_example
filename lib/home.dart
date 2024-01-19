@@ -18,15 +18,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      home: WaveformsDashboard(),
+      home: WaveformsDashboard(scope: 5.5),
     );
   }
 }
 
 class WaveformsDashboard extends StatefulWidget {
-  double scope = 5.5;
+  double scope;
 
-  WaveformsDashboard({this.scope = 5.5, Key? key}) : super(key: key);
+  WaveformsDashboard({required this.scope, Key? key}) : super(key: key);
 
   @override
   State<WaveformsDashboard> createState() => _WaveformsDashboardState();
@@ -34,6 +34,7 @@ class WaveformsDashboard extends StatefulWidget {
 
 class _WaveformsDashboardState extends State<WaveformsDashboard> {
   double right = -(window.physicalSize.shortestSide / window.devicePixelRatio);
+  late double distance;
   double width = window.physicalSize.shortestSide / window.devicePixelRatio;
 
   late Duration elapsedDuration;
@@ -65,7 +66,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     final json = await rootBundle.loadString(audioData[0]);
     Map<String, dynamic> audioDataMap = {
       "json": json,
-      "totalSamples": totalSamples,
+      "totalSamples": 256,
     };
     final samplesData = await compute(loadparseJson, audioDataMap);
 
@@ -88,6 +89,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     super.initState();
     right *= widget.scope;
     width *= widget.scope;
+    distance = right;
     audioPlayer = AudioPlayer();
     audioData = audioDataList[0];
 
@@ -104,16 +106,13 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     });
     audioPlayer.onPositionChanged.listen((Duration p) {
       setState(() {
-        right += width / maxDuration.inSeconds / widget.scope;
-        int maxSecond = maxDuration.inSeconds;
-        int currentSecond = p.inSeconds;
-        print("CURRENT SECOND $currentSecond");
-        double sP = currentSecond * 100 / maxSecond;
-        double active = width * sP / 100;
-        // print("MANA SP $sP");
-
+        int second = p.inMicroseconds;
+        print("Current SECOND ${p.inSeconds}");
+        double secondP = second * 100 / maxDuration.inMicroseconds;
+        double distanceC = distance * secondP / 100;
+        right = distance - distanceC;
         elapsedDuration = p;
-        sliderValue = p.inSeconds / maxDuration.inSeconds;
+        sliderValue = p.inMicroseconds * 100 / maxDuration.inMicroseconds;
       });
     });
   }
