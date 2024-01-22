@@ -30,16 +30,19 @@ class RippleData {
   }
 }
 
-class CustomRipple extends StatefulWidget {
+class CustomizableRippleAnimation extends StatefulWidget {
   Widget child;
   RippleData data;
-  CustomRipple({required this.child, required this.data, super.key});
+  CustomizableRippleAnimation(
+      {required this.child, required this.data, super.key});
 
   @override
-  State<CustomRipple> createState() => _CustomRippleState();
+  State<CustomizableRippleAnimation> createState() =>
+      _CustomizableRippleAnimationState();
 }
 
-class _CustomRippleState extends State<CustomRipple> {
+class _CustomizableRippleAnimationState
+    extends State<CustomizableRippleAnimation> {
   Stream<RippleData> infiniteStreamOfThreeNumbers() async* {
     List ripples = [
       RippleData(

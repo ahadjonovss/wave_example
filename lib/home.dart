@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
-import 'package:wave_example/tasks/my_notes.dart';
 
 import 'load_audio_data.dart';
 
@@ -19,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
-      home: MyNotesPage(),
+      home: WaveformsDashboard(scope: 0.5),
     );
   }
 }
@@ -41,7 +40,6 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   late Duration elapsedDuration;
   late AudioPlayer audioPlayer;
   late List<double> samples;
-  double sliderValue = 0;
   int totalSamples = 256;
   WaveformType waveformType = WaveformType.polygon;
   late WaveformCustomizations waveformCustomizations;
@@ -51,15 +49,15 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   List<List<String>> audioDataList = [
     [
       'assets/soy.json',
-      'some.mp3',
+      'music.mp3',
     ],
     [
       'assets/soy.json',
-      'some.mp3',
+      'music.mp3',
     ],
     [
       'assets/soy.json',
-      'some.mp3',
+      'music.mp3',
     ],
   ];
 
@@ -89,7 +87,6 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   void initState() {
     super.initState();
     right *= widget.scope;
-    width *= widget.scope;
     distance = right;
     audioPlayer = AudioPlayer();
     audioData = audioDataList[0];
@@ -99,30 +96,24 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     samples = [];
     elapsedDuration = const Duration();
 
-    audioPlayer.onPlayerComplete.listen((_) {
-      setState(() {
-        elapsedDuration = maxDuration;
-        sliderValue = 1;
-      });
-    });
     audioPlayer.onPositionChanged.listen((Duration p) {
       setState(() {
         int second = p.inMicroseconds;
 
         double secondP = second * 100 / maxDuration.inMicroseconds;
-        print("-------");
-        print(
-            "Current SECOND ${p.inSeconds} of ${maxDuration.inSeconds} : $secondP %");
-
         double distanceC = distance * secondP / 100;
-        print(
-            "Distance: ${distance - distanceC} of $distance :${distanceC * 100 / distance} %");
 
-        right = distance - distanceC;
-        elapsedDuration = p;
+        right = distance - distanceC * 2;
+        // distance -= distanceC;
+        print(p.compareTo(maxDuration) != 1);
+        if (p.compareTo(maxDuration) != 1) {
+          elapsedDuration = p;
+        }
+
+        // print("Elapsed $p - max $maxDuration");
       });
     });
-    totalSamples = maxDuration.inSeconds;
+    totalSamples = maxDuration.inSeconds ~/ 2;
   }
 
   @override
@@ -135,17 +126,19 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   }
 
   void updatePosition(DragUpdateDetails details) {
-    if (right - details.delta.dx > (-width) &&
-        right - details.delta.dx < width) {
+    if (right - details.delta.dx > (-(width / 2)) &&
+        right - details.delta.dx < width / 2) {
       // double width = MediaQuery.of(context).size.width * 0.5;
       right -= details.delta.dx;
-      double number = right + width;
+      double number = right + width / 2;
 
       double percentage = (number / width) * 100;
+      // print(percentage);
       int second = calculatePercentage(maxDuration.inSeconds, percentage);
-      audioPlayer.seek(Duration(seconds: second));
-
-      audioPlayer.seek(Duration(seconds: second));
+      elapsedDuration = Duration(seconds: second);
+      if (percentage <= 98) {
+        audioPlayer.seek(Duration(seconds: second));
+      }
     }
     setState(() {
       // Update position on drag
@@ -167,20 +160,22 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                   duration: const Duration(microseconds: 1),
                   right: right,
                   child: GestureDetector(
+                    onHorizontalDragStart: (details) async {
+                      print("Started");
+                      await audioPlayer.pause();
+                    },
                     onHorizontalDragUpdate: updatePosition,
+                    onHorizontalDragEnd: (details) async {
+                      await audioPlayer.resume();
+                    },
                     onTap: () {},
-                    child: Align(
+                    child: Container(
                       alignment: Alignment.center,
-                      child: Column(
-                        children: [
-                          SquigglyWaveformExample(
-                            maxDuration: maxDuration,
-                            elapsedDuration: elapsedDuration,
-                            samples: samples,
-                            waveformCustomizations: waveformCustomizations,
-                          ),
-                          SizedBox(height: 30),
-                        ],
+                      child: SquigglyWaveformExample(
+                        maxDuration: Duration(seconds: maxDuration.inSeconds),
+                        elapsedDuration: elapsedDuration,
+                        samples: samples,
+                        waveformCustomizations: waveformCustomizations,
                       ),
                     ),
                   ),
@@ -227,7 +222,6 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      sliderValue = 0;
                       audioPlayer.seek(const Duration(milliseconds: 0));
                       right = distance;
                     });
