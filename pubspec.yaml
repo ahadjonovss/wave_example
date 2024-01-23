@@ -40,6 +40,7 @@ dependencies:
   animated_switcher_plus: ^1.1.0
   awesome_ripple_animation: ^2.0.0
   flutter_ripple: ^0.0.3
+  audio_waveforms: ^1.0.4
 
 dev_dependencies:
   flutter_test:
