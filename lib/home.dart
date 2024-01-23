@@ -1,14 +1,10 @@
 // Dashboard showcasing all the available Waveform types and their customizations.
 
-import 'dart:ui';
+import 'dart:math';
 
+import 'package:audio_wave/audio_wave.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_audio_waveforms/flutter_audio_waveforms.dart';
-
-import 'load_audio_data.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -16,300 +12,207 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'Flutter Demo',
-      home: WaveformsDashboard(scope: 0.5),
+      home: WaveformsDashboard(),
     );
   }
 }
 
 class WaveformsDashboard extends StatefulWidget {
-  double scope;
-
-  WaveformsDashboard({required this.scope, Key? key}) : super(key: key);
+  const WaveformsDashboard({Key? key}) : super(key: key);
 
   @override
   State<WaveformsDashboard> createState() => _WaveformsDashboardState();
 }
 
 class _WaveformsDashboardState extends State<WaveformsDashboard> {
-  double right = -(window.physicalSize.shortestSide / window.devicePixelRatio);
-  late double distance;
-  double width = window.physicalSize.shortestSide / window.devicePixelRatio;
+  ScrollController scrollController = ScrollController();
 
-  late Duration elapsedDuration;
-  late AudioPlayer audioPlayer;
-  late List<double> samples;
-  int totalSamples = 256;
-  WaveformType waveformType = WaveformType.polygon;
-  late WaveformCustomizations waveformCustomizations;
+  AudioPlayer audioPlayer = AudioPlayer();
+  List heights = [];
+  List waves = [];
 
-  late List<String> audioData;
-
-  List<List<String>> audioDataList = [
-    [
-      'assets/soy.json',
-      'music.mp3',
-    ],
-    [
-      'assets/soy.json',
-      'music.mp3',
-    ],
-    [
-      'assets/soy.json',
-      'music.mp3',
-    ],
-  ];
-
-  Future<void> parseData() async {
-    final json = await rootBundle.loadString(audioData[0]);
-    Map<String, dynamic> audioDataMap = {
-      "json": json,
-      "totalSamples": maxDuration.inSeconds,
-    };
-    final samplesData = await compute(loadparseJson, audioDataMap);
-
-    setState(() {
-      samples = samplesData["samples"];
-    });
-  }
+  int maxLength = 400;
+  int maxWaves = 100;
+  Duration currentDuration = const Duration(seconds: 0);
 
   Duration maxDuration = const Duration(seconds: 1000);
-  late ValueListenable<Duration> progress;
 
-  Future<void> playAudio() async {
-    await audioPlayer.play(AssetSource('some.mp3'));
+  void _scrollListener() {
+    double currentPosition = scrollController.position.pixels -
+        MediaQuery.of(context).size.height * 0.5;
+    double wavePercent = currentPosition * 100 / maxLength;
 
-    maxDuration = (await audioPlayer.getDuration())!;
+    // You can access the scroll position with: scrollController.position
   }
 
   @override
   void initState() {
     super.initState();
-    right *= widget.scope;
-    distance = right;
-    audioPlayer = AudioPlayer();
-    audioData = audioDataList[0];
-
-    parseData();
-
-    samples = [];
-    elapsedDuration = const Duration();
+    scrollController.addListener(_scrollListener);
 
     audioPlayer.onPositionChanged.listen((Duration p) {
       setState(() {
         int second = p.inMicroseconds;
+        currentDuration = p;
+        // second += 160000;
 
         double secondP = second * 100 / maxDuration.inMicroseconds;
-        double distanceC = distance * secondP / 100;
 
-        right = distance - distanceC * 2;
-        // distance -= distanceC;
-        print(p.compareTo(maxDuration) != 1);
-        if (p.compareTo(maxDuration) != 1) {
-          elapsedDuration = p;
-        }
+        double wavePosition = maxLength * secondP / 100;
 
-        // print("Elapsed $p - max $maxDuration");
+        scrollController.animateTo(
+          wavePosition, // Scroll offset to reach
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOut,
+        );
+
+        waves = List.generate(maxWaves, (index) {
+          return AudioWaveBar(
+              heightFactor: heights[index],
+              color: p.inMilliseconds ~/ 100 - 1 > index
+                  ? Color(0xFF007AF5)
+                  : Color(0xFF007AF5).withOpacity(0.2));
+        });
       });
     });
-    totalSamples = maxDuration.inSeconds ~/ 2;
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    waveformCustomizations = WaveformCustomizations(
-      height: MediaQuery.of(context).size.height * 0.2,
-      width: MediaQuery.of(context).size.width,
-    );
+  Future<void> playAudio() async {
+    await audioPlayer.setSource(AssetSource('some.mp3'));
+    await audioPlayer.play(AssetSource('some.mp3'));
+
+    maxDuration = (await audioPlayer.getDuration())!;
+    maxLength = maxDuration.inMilliseconds ~/ 100 * 8;
+    maxWaves = maxDuration.inMilliseconds ~/ 100;
+    heights =
+        List.generate(maxWaves, (index) => (Random().nextInt(9) + 1) * 0.1);
+    waves = List.generate(
+        maxWaves,
+        (index) => AudioWaveBar(
+            heightFactor: (Random().nextInt(9) + 1) * 0.1,
+            color: Colors.lightBlueAccent));
+    setState(() {});
   }
 
-  void updatePosition(DragUpdateDetails details) {
-    if (right - details.delta.dx > (-(width / 2)) &&
-        right - details.delta.dx < width / 2) {
-      // double width = MediaQuery.of(context).size.width * 0.5;
-      right -= details.delta.dx;
-      double number = right + width / 2;
-
-      double percentage = (number / width) * 100;
-      // print(percentage);
-      int second = calculatePercentage(maxDuration.inSeconds, percentage);
-      elapsedDuration = Duration(seconds: second);
-      if (percentage <= 98) {
-        audioPlayer.seek(Duration(seconds: second));
-      }
-    }
-    setState(() {
-      // Update position on drag
-    });
-  }
+  void updatePosition(DragUpdateDetails details) {}
 
   @override
   Widget build(BuildContext context) {
+    print(maxLength);
     return Scaffold(
         appBar: AppBar(
           title: const Text('Flutter Audio Waveforms'),
         ),
-        body: Column(
-          //    mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              children: [
-                AnimatedPositioned(
-                  duration: const Duration(microseconds: 1),
-                  right: right,
-                  child: GestureDetector(
-                    onHorizontalDragStart: (details) async {
-                      print("Started");
-                      await audioPlayer.pause();
-                    },
-                    onHorizontalDragUpdate: updatePosition,
-                    onHorizontalDragEnd: (details) async {
-                      await audioPlayer.resume();
-                    },
-                    onTap: () {},
-                    child: Container(
-                      alignment: Alignment.center,
-                      child: SquigglyWaveformExample(
-                        maxDuration: Duration(seconds: maxDuration.inSeconds),
-                        elapsedDuration: elapsedDuration,
-                        samples: samples,
-                        waveformCustomizations: waveformCustomizations,
+        body: SizedBox(
+          height: MediaQuery.of(context).size.height,
+          width: MediaQuery.of(context).size.width,
+          child: Column(
+            children: [
+              Stack(
+                children: [
+                  SizedBox(
+                    width: maxLength.toDouble(),
+                    height: 150,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.5),
+                          Column(
+                            children: [
+                              AudioWave(
+                                height: 100,
+                                width: maxLength.toDouble(),
+                                animation: false,
+                                spacing: 2.5,
+                                bars: waves.cast(),
+                              ),
+                              const SizedBox(height: 20),
+                              SizedBox(
+                                width: maxLength.toDouble(),
+                                height: 30,
+                                child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    shrinkWrap: true,
+                                    itemCount: maxDuration.inSeconds,
+                                    itemBuilder: (context, index) => SizedBox(
+                                        width: 10 * 8,
+                                        child: Text(formatSeconds(index)))),
+                              )
+                            ],
+                          ),
+                          SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.5),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                SizedBox(
-                  width: MediaQuery.of(context).size.width,
-                  child: Center(
+                  Positioned(
+                    right: 200,
                     child: Container(
-                      height: 180,
-                      width: 2,
-                      color: const Color(0xff007AF5),
+                      height: 100,
+                      width: 4,
+                      color: Colors.blue,
                     ),
                   ),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    audioPlayer.pause();
-                  },
-                  child: const Icon(
-                    Icons.pause,
+                ],
+              ),
+              const SizedBox(height: 100),
+              Text(formatSeconds(currentDuration.inSeconds)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      audioPlayer.pause();
+                    },
+                    child: const Icon(
+                      Icons.pause,
+                    ),
                   ),
-                ),
-                const SizedBox(
-                  width: 20,
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (audioPlayer.state == PlayerState.paused) {
-                      audioPlayer.resume();
-                    } else {
-                      await playAudio();
-                    }
-                  },
-                  child: const Icon(Icons.play_arrow),
-                ),
-                const SizedBox(
-                  width: 20,
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      audioPlayer.seek(const Duration(milliseconds: 0));
-                      right = distance;
-                    });
-                  },
-                  child: const Icon(Icons.replay_outlined),
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(
+                    width: 20,
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      if (audioPlayer.state == PlayerState.paused) {
+                        audioPlayer.resume();
+                      } else {
+                        await playAudio();
+                      }
+                    },
+                    child: const Icon(Icons.play_arrow),
+                  ),
+                  const SizedBox(
+                    width: 20,
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        audioPlayer.seek(const Duration(milliseconds: 0));
+                      });
+                    },
+                    child: const Icon(Icons.replay_outlined),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ));
   }
 
-  int calculatePercentage(int number, double percent) {
-    return number * percent ~/ 100;
+  String formatSeconds(int seconds) {
+    int min = seconds ~/ 60; // Integer division to get minutes
+    int sec = seconds % 60; // Modulus to get remaining seconds
+
+    // Pad the minute and second values with zeros if necessary
+    String minStr = min.toString().padLeft(2, '0');
+    String secStr = sec.toString().padLeft(2, '0');
+
+    return "$minStr:$secStr";
   }
-}
-
-class SquigglyWaveformExample extends StatelessWidget {
-  const SquigglyWaveformExample({
-    Key? key,
-    required this.maxDuration,
-    required this.elapsedDuration,
-    required this.samples,
-    required this.waveformCustomizations,
-  }) : super(key: key);
-
-  final Duration maxDuration;
-  final Duration elapsedDuration;
-  final List<double> samples;
-  final WaveformCustomizations waveformCustomizations;
-
-  @override
-  Widget build(BuildContext context) {
-    return SquigglyWaveform(
-      maxDuration: maxDuration,
-      elapsedDuration: elapsedDuration,
-      samples: samples,
-      height: waveformCustomizations.height,
-      width: waveformCustomizations.width,
-      inactiveColor: waveformCustomizations.inactiveColor,
-      invert: waveformCustomizations.invert,
-      absolute: waveformCustomizations.absolute,
-      activeColor: waveformCustomizations.activeColor,
-      showActiveWaveform: waveformCustomizations.showActiveWaveform,
-      strokeWidth: waveformCustomizations.borderWidth,
-    );
-  }
-}
-
-enum WaveformType {
-  polygon,
-  rectangle,
-  squiggly,
-  curvedPolygon,
-}
-
-class WaveformCustomizations {
-  WaveformCustomizations({
-    required this.height,
-    required this.width,
-    this.activeColor = Colors.red,
-    this.inactiveColor = Colors.blue,
-    this.activeGradient,
-    this.inactiveGradient,
-    this.style = PaintingStyle.stroke,
-    this.showActiveWaveform = true,
-    this.absolute = false,
-    this.invert = false,
-    this.borderWidth = 1.0,
-    this.activeBorderColor = Colors.white,
-    this.inactiveBorderColor = Colors.white,
-    this.isRoundedRectangle = false,
-    this.isCentered = false,
-  });
-
-  double height;
-  double width;
-  Color inactiveColor;
-  Gradient? inactiveGradient;
-  bool invert;
-  bool absolute;
-  Color activeColor;
-  Gradient? activeGradient;
-  bool showActiveWaveform;
-  PaintingStyle style;
-  double borderWidth;
-  Color activeBorderColor;
-  Color inactiveBorderColor;
-  bool isRoundedRectangle;
-  bool isCentered;
 }
