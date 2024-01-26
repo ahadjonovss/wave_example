@@ -1,7 +1,6 @@
-// Dashboard showcasing all the available Waveform types and their customizations.
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:wave_example/wave/package/flutter_wave_forms.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -15,7 +14,7 @@ class _MyAppState extends State<MyApp> {
   // late Duration maxDuration;
   // late int maxLength;
   // late int wavesCount;
-  // bool isInitialized = false;
+  bool isInitialized = false;
 
   Future<void> playAudio() async {
     await audioPlayer.play(AssetSource('some.mp3'));
@@ -36,6 +35,9 @@ class _MyAppState extends State<MyApp> {
     super.initState();
   }
 
+  String url =
+      "https://firebasestorage.googleapis.com/v0/b/fir-example-e58e4.appspot.com/o/some.mp3?alt=media&token=3f94d450-2164-4dad-8741-43e37f71f15d";
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,15 @@ class _MyAppState extends State<MyApp> {
         body: SafeArea(
           child: Column(
             children: [
+              WaveformsDashboard(
+                  settings: WaveSettings(
+                      inActiveColor: Colors.green,
+                      activeColor: Colors.black,
+                      audioPlayer: audioPlayer,
+                      height: 300,
+                      waveHeight: 130,
+                      showLabels: true,
+                      path: url)),
               const SizedBox(height: 100),
               // Text(formatSeconds(currentDuration.inSeconds)),
               Row(
