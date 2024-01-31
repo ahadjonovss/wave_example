@@ -110,6 +110,14 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
 
     audioRecorder.onStateChanged().listen((event) {
       isRecording = event == RecordState.record;
+      if (event == RecordState.stop) {
+        cD = const Duration(seconds: 0);
+        heights = List.generate(wavesCount, (index) {
+          return 0.05;
+        });
+        regenerateWaves(cD);
+        print("Done");
+      }
       setState(() {});
     });
   }
@@ -117,28 +125,31 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: settings.height,
+      height: settings.showLabels ? settings.height + 50 : settings.height,
       child: Stack(
         children: [
           AnimatedPositioned(
             curve: Curves.easeOut,
             duration: const Duration(milliseconds: 500),
             left: left,
-            child: SingleChildScrollView(
-              physics: const NeverScrollableScrollPhysics(),
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                height: settings.waveHeight,
+            child: SizedBox(
+              height:
+                  settings.showLabels ? settings.height + 50 : settings.height,
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
                     SizedBox(width: MediaQuery.of(context).size.width * 0.5),
                     SizedBox(
-                      height: settings.height,
+                      height: settings.showLabels
+                          ? settings.height + 50
+                          : settings.height,
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
                             Container(
-                              height: settings.waveHeight,
+                              height: settings.height,
                               color: settings.backgroundColor,
                               child: AudioWave(
                                 height: settings.waveHeight,
@@ -175,10 +186,12 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
                                     scrollDirection: Axis.horizontal,
                                     shrinkWrap: true,
                                     itemCount: maxDuration.inSeconds,
-                                    itemBuilder: (context, index) => SizedBox(
-                                        width: 10 * 8,
-                                        child: Text(formatSeconds(index)))),
-                              )
+                                    itemBuilder: (context, index) {
+                                      return SizedBox(
+                                          width: 10 * 8,
+                                          child: Text(formatSeconds(index)));
+                                    }),
+                              ),
                           ],
                         ),
                       ),
