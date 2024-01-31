@@ -58,6 +58,7 @@ class _MyAppState extends State<MyApp> {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    print(MediaQuery.of(context).size.height);
     return MaterialApp(
       title: 'Flutter Demo',
       home: Scaffold(
@@ -69,8 +70,8 @@ class _MyAppState extends State<MyApp> {
                       inActiveColor: Colors.green,
                       activeColor: Colors.black,
                       recorder: audioRecorder,
-                      height: 300,
-                      waveHeight: 130,
+                      height: MediaQuery.of(context).size.height * 0.2,
+                      waveHeight: 30,
                       showLabels: true)),
               const SizedBox(height: 100),
               // Text(formatSeconds(currentDuration.inSeconds)),

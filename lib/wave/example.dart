@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:wave_example/wave/package/flutter_wave_forms.dart';
+
+import 'package/flutter_wave_forms.dart';
 
 class MyApp extends StatefulWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -48,14 +49,17 @@ class _MyAppState extends State<MyApp> {
           child: Column(
             children: [
               WaveformsDashboard(
-                  settings: WaveSettings(
-                      inActiveColor: Colors.green,
-                      activeColor: Colors.black,
-                      audioPlayer: audioPlayer,
-                      height: 300,
-                      waveHeight: 130,
-                      showLabels: true,
-                      path: url)),
+                settings: WaveSettings(
+                  inActiveColor: Colors.green,
+                  activeColor: Colors.black,
+                  audioPlayer: audioPlayer,
+                  height: 300,
+                  waveBGHeight: 200,
+                  waveHeight: 100,
+                  showLabels: true,
+                  path: url,
+                ),
+              ),
               const SizedBox(height: 100),
               // Text(formatSeconds(currentDuration.inSeconds)),
               Row(

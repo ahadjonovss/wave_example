@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'dart:ui';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-
 import 'wave_bar.dart';
 
 class WaveSettings {
@@ -149,7 +147,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                   physics: const NeverScrollableScrollPhysics(),
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
-                    height: settings.waveHeight,
+                    height: settings.height,
                     child: Row(
                       children: [
                         SizedBox(

@@ -57,7 +57,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
 
     settings.centerLineWidth = widget.settings.centerLineWidth ?? 4;
     settings.height = widget.settings.showLabels
-        ? widget.settings.height + 50
+        ? widget.settings.height
         : widget.settings.height;
     settings.activeColor =
         widget.settings.activeColor ?? const Color(0xFF007AF5);
@@ -124,19 +124,17 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
             curve: Curves.easeOut,
             duration: const Duration(milliseconds: 500),
             left: left,
-            child: SizedBox(
-              width: maxLength.toDouble(),
-              height: settings.height,
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  height: settings.height,
-                  child: Row(
-                    children: [
-                      SizedBox(width: MediaQuery.of(context).size.width * 0.5),
-                      SizedBox(
-                        height: settings.height,
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                height: settings.waveHeight,
+                child: Row(
+                  children: [
+                    SizedBox(width: MediaQuery.of(context).size.width * 0.5),
+                    SizedBox(
+                      height: settings.height,
+                      child: SingleChildScrollView(
                         child: Column(
                           children: [
                             Container(
@@ -184,9 +182,9 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
                           ],
                         ),
                       ),
-                      SizedBox(width: MediaQuery.of(context).size.width * 0.5),
-                    ],
-                  ),
+                    ),
+                    SizedBox(width: MediaQuery.of(context).size.width * 0.5),
+                  ],
                 ),
               ),
             ),
@@ -197,7 +195,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
                 ? MediaQuery.of(context).size.width * 0.47
                 : MediaQuery.of(context).size.width * 0.526,
             child: Container(
-              height: settings.waveHeight,
+              height: settings.height,
               width: 4,
               color: settings.centerLineColor,
             ),
