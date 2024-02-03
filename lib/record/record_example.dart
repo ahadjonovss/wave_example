@@ -90,7 +90,9 @@ class _MyAppState extends State<MyApp> {
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      recordAudio();
+                      await audioRecorder.isPaused()
+                          ? audioRecorder.resume()
+                          : recordAudio();
                     },
                     child: const Icon(Icons.fiber_manual_record),
                   ),
@@ -108,7 +110,7 @@ class _MyAppState extends State<MyApp> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() async {
-                        final path = await audioRecorder.stop();
+                        final path = await audioRecorder.pause();
                         recordAudio();
                       });
                     },

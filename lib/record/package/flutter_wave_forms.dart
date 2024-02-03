@@ -40,6 +40,7 @@ class RecordingWaveDashboard extends StatefulWidget {
 
 class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
   final record = AudioRecorder();
+  int additionCount = window.physicalSize.width / window.devicePixelRatio ~/ 16;
 
   double left = window.physicalSize.width / window.devicePixelRatio;
   late RecorderSettings settings;
@@ -68,7 +69,10 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
 
     settings.backgroundColor = widget.settings.backgroundColor ??
         const Color(0xFF007AF5).withOpacity(0.04);
+    List addition = List.generate(additionCount, (index) => 0);
     heights = List.generate(wavesCount, (index) => 0.05);
+    heights.insertAll(0, addition);
+
     setState(() {
       regenerateWaves(const Duration(seconds: 1));
     });
@@ -76,15 +80,17 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
 
   void regenerateWaves(Duration currentDuration) {
     waves = List.generate(wavesCount, (index) {
-      if (heights[index] == 0.05 &&
-          currentDuration.inMilliseconds ~/ 100 - 1 > index) {
+      int currentIndex = index - additionCount;
+      bool ableToChange =
+          currentDuration.inMilliseconds ~/ 100 - 1 > currentIndex &&
+              cD.inMicroseconds != 0;
+      if (heights[index] == 0.05 && ableToChange) {
         heights[index] = (Random().nextInt(9) + 1) * 0.1;
       }
       return AudioWaveBar(
-          heightFactor: heights[index],
-          color: currentDuration.inMilliseconds ~/ 100 - 1 > index
-              ? settings.activeColor!
-              : settings.inActiveColor!);
+          heightFactor: heights[index].toDouble(),
+          color:
+              ableToChange ? settings.activeColor! : settings.inActiveColor!);
     });
 
     setState(() {});
@@ -116,7 +122,6 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
           return 0.05;
         });
         regenerateWaves(cD);
-        print("Done");
       }
       setState(() {});
     });
@@ -131,73 +136,76 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
           AnimatedPositioned(
             curve: Curves.easeOut,
             duration: const Duration(milliseconds: 500),
-            left: left,
+            left: left == window.physicalSize.width / window.devicePixelRatio
+                ? 0
+                : left,
             child: SizedBox(
               height:
                   settings.showLabels ? settings.height + 50 : settings.height,
               child: SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
                 scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    SizedBox(width: MediaQuery.of(context).size.width * 0.5),
-                    SizedBox(
-                      height: settings.showLabels
-                          ? settings.height + 50
-                          : settings.height,
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            Container(
-                              height: settings.height,
-                              color: settings.backgroundColor,
-                              child: AudioWave(
-                                height: settings.waveHeight,
-                                width: maxLength.toDouble(),
-                                animation: false,
-                                spacing: 2.5,
-                                bars: waves.cast(),
-                              ),
-                            ),
-                            // SizedBox(
-                            //   width: maxLength.toDouble(),
-                            //   height: 4,
-                            //   child: ListView.builder(
-                            //       scrollDirection: Axis.horizontal,
-                            //       shrinkWrap: true,
-                            //       itemCount: maxDuration.inSeconds * 4,
-                            //       itemBuilder: (context, index) {
-                            //         print(index % 4 == 0);
-                            //         return Container(
-                            //             margin: const EdgeInsets.only(
-                            //                 right: 20),
-                            //             color: Colors.black
-                            //                 .withOpacity(0.3),
-                            //             height: index % 4 == 0 ? 2 : 3,
-                            //             width: 1);
-                            //       }),
-                            // ),
-                            if (settings.showLabels) const SizedBox(height: 20),
-                            if (settings.showLabels)
-                              SizedBox(
-                                width: maxLength.toDouble(),
-                                height: 30,
-                                child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    shrinkWrap: true,
-                                    itemCount: maxDuration.inSeconds,
-                                    itemBuilder: (context, index) {
-                                      return SizedBox(
-                                          width: 10 * 8,
-                                          child: Text(formatSeconds(index)));
-                                    }),
-                              ),
-                          ],
+                child: SizedBox(
+                  height: settings.showLabels
+                      ? settings.height + 50
+                      : settings.height,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Container(
+                          height: settings.height,
+                          color: settings.backgroundColor,
+                          child: AudioWave(
+                            height: settings.waveHeight,
+                            width: maxLength.toDouble(),
+                            animation: false,
+                            spacing: 2.5,
+                            bars: waves.cast(),
+                          ),
                         ),
-                      ),
+                        // SizedBox(
+                        //   width: maxLength.toDouble(),
+                        //   height: 4,
+                        //   child: ListView.builder(
+                        //       scrollDirection: Axis.horizontal,
+                        //       shrinkWrap: true,
+                        //       itemCount: maxDuration.inSeconds * 4,
+                        //       itemBuilder: (context, index) {
+                        //         print(index % 4 == 0);
+                        //         return Container(
+                        //             margin: const EdgeInsets.only(
+                        //                 right: 20),
+                        //             color: Colors.black
+                        //                 .withOpacity(0.3),
+                        //             height: index % 4 == 0 ? 2 : 3,
+                        //             width: 1);
+                        //       }),
+                        // ),
+                        if (settings.showLabels) const SizedBox(height: 20),
+                        if (settings.showLabels)
+                          SizedBox(
+                            width: maxLength.toDouble(),
+                            height: 30,
+                            child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                shrinkWrap: true,
+                                itemCount: maxDuration.inSeconds + 1,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return SizedBox(
+                                        width:
+                                            MediaQuery.of(context).size.width *
+                                                    0.5 -
+                                                12);
+                                  }
+                                  return SizedBox(
+                                      width: 10 * 8,
+                                      child: Text(formatSeconds(index - 1)));
+                                }),
+                          ),
+                      ],
                     ),
-                    SizedBox(width: MediaQuery.of(context).size.width * 0.5),
-                  ],
+                  ),
                 ),
               ),
             ),

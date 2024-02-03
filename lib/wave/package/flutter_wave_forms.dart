@@ -160,6 +160,10 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                           child: Column(
                             children: [
                               Container(
+                                constraints: BoxConstraints(
+                                  minHeight: settings.waveBGHeight,
+                                  minWidth: MediaQuery.of(context).size.width,
+                                ),
                                 height: settings.waveBGHeight,
                                 color: settings.backgroundColor,
                                 child: AudioWave(
