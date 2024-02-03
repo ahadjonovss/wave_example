@@ -18,7 +18,7 @@ class _MyAppState extends State<MyApp> {
   bool isInitialized = false;
 
   Future<void> playAudio() async {
-    await audioPlayer.play(AssetSource('some.mp3'));
+    await audioPlayer.play(UrlSource(url));
   }
 
   // void setUpAudio() async {
@@ -57,6 +57,7 @@ class _MyAppState extends State<MyApp> {
                   waveBGHeight: 200,
                   waveHeight: 100,
                   showLabels: true,
+                  isAsset: false,
                   path: url,
                 ),
               ),
@@ -79,7 +80,7 @@ class _MyAppState extends State<MyApp> {
                   ElevatedButton(
                     onPressed: () async {
                       if (audioPlayer.state == PlayerState.paused) {
-                        audioPlayer.resume();
+                        await audioPlayer.resume();
                       } else {
                         await playAudio();
                       }
@@ -93,6 +94,14 @@ class _MyAppState extends State<MyApp> {
                     onPressed: () {
                       setState(() {
                         audioPlayer.seek(const Duration(milliseconds: 0));
+                      });
+                    },
+                    child: const Icon(Icons.replay_outlined),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() async {
+                        await audioPlayer.seek(const Duration(seconds: 235));
                       });
                     },
                     child: const Icon(Icons.replay_outlined),

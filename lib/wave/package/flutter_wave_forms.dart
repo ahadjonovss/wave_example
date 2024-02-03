@@ -1,5 +1,6 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -47,7 +48,8 @@ class WaveformsDashboard extends StatefulWidget {
 }
 
 class _WaveformsDashboardState extends State<WaveformsDashboard> {
-  double left = window.physicalSize.width / window.devicePixelRatio;
+  double left = 0;
+
   late WaveSettings settings;
   Duration maxDuration = const Duration(seconds: 100);
   int maxLength = 215;
@@ -62,7 +64,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
       await audioPlayer.setSourceUrl(settings.path);
     }
     maxDuration = (await audioPlayer.getDuration())!;
-    maxLength = maxDuration.inMilliseconds ~/ 100 * 8;
+    maxLength = (maxDuration.inMilliseconds ~/ 100 * 8);
     wavesCount = maxDuration.inMilliseconds ~/ 100;
 
     settings.centerLineWidth = widget.settings.centerLineWidth ?? 4;
@@ -80,18 +82,20 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
         const Color(0xFF007AF5).withOpacity(0.04);
     heights =
         List.generate(wavesCount, (index) => (Random().nextInt(9) + 1) * 0.1);
+
     setState(() {
-      regenerateWaves(const Duration(seconds: 1));
+      regenerateWaves(const Duration(seconds: 0));
     });
   }
 
   void regenerateWaves(Duration currentDuration) {
-    waves = List.generate(wavesCount, (index) {
+    waves = List.generate(wavesCount, (currentIndex) {
+      bool ableToChange =
+          currentDuration.inMilliseconds ~/ 100 > currentIndex &&
+              currentDuration.inMicroseconds != 0;
       return AudioWaveBar(
-        heightFactor: heights[index],
-        color: currentDuration.inMilliseconds ~/ 100 - 1 > index
-            ? settings.activeColor!
-            : settings.inActiveColor!,
+        heightFactor: heights[currentIndex].toDouble(),
+        color: ableToChange ? settings.activeColor! : settings.inActiveColor!,
       );
     });
   }
@@ -108,54 +112,59 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     audioPlayer.onPositionChanged.listen((Duration p) {
       setState(() {
         int second = p.inMicroseconds;
+
         double secondP = second * 100 / maxDuration.inMicroseconds;
         double wavePosition = maxLength * secondP / 100;
         left = -wavePosition;
-        regenerateWaves(p);
+        Duration s = Duration(milliseconds: p.inMilliseconds);
+        regenerateWaves(s);
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // print(    waves.length);
     return SizedBox(
       height: settings.height,
       child: Stack(
         children: [
           AnimatedPositioned(
             curve: Curves.easeOut,
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 200),
             left: left,
-            child: SizedBox(
-              width: maxLength.toDouble(),
-              height: settings.height,
-              child: GestureDetector(
-                onHorizontalDragUpdate: (DragUpdateDetails details) {
-                  setState(() {
-                    left += details.delta.dx;
-                  });
-                },
-                onHorizontalDragStart: (details) {
-                  audioPlayer.pause();
-                },
-                onHorizontalDragEnd: (DragEndDetails details) {
-                  double percent = left.abs() * 100 / maxLength;
-                  int second = maxDuration.inSeconds * percent ~/ 100;
-                  audioPlayer.seek(Duration(seconds: second + 1));
-                  audioPlayer.resume();
-                },
-                child: SingleChildScrollView(
-                  physics: const NeverScrollableScrollPhysics(),
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    height: settings.waveHeight,
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.5,
-                        ),
-                        SizedBox(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                    height: settings.waveBGHeight,
+                    color: settings.backgroundColor,
+                    width: MediaQuery.of(context).size.width * 0.5),
+                SizedBox(
+                  width: maxLength.toDouble(),
+                  height: settings.height,
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: (DragUpdateDetails details) {
+                      setState(() {
+                        left += details.delta.dx;
+                      });
+                    },
+                    onHorizontalDragStart: (details) async {
+                      await audioPlayer.pause();
+                    },
+                    onHorizontalDragEnd: (DragEndDetails details) async {
+                      double percent = left.abs() * 100 / maxLength;
+                      int second =
+                          ((maxDuration.inSeconds.ceil()) * percent ~/ 100)
+                              .ceil();
+                      audioPlayer.seek(Duration(seconds: second));
+                      await audioPlayer.resume();
+                    },
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        height: settings.waveHeight,
+                        child: SizedBox(
                           height: settings.height,
                           child: Column(
                             children: [
@@ -181,33 +190,32 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                                   width: maxLength.toDouble(),
                                   height: 30,
                                   child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    shrinkWrap: true,
-                                    itemCount: maxDuration.inSeconds,
-                                    itemBuilder: (context, index) => SizedBox(
-                                      width: 10 * 8,
-                                      child: Text(formatSeconds(index)),
-                                    ),
-                                  ),
+                                      scrollDirection: Axis.horizontal,
+                                      shrinkWrap: true,
+                                      itemCount: maxDuration.inSeconds,
+                                      itemBuilder: (context, index) {
+                                        return SizedBox(
+                                          width: 10 * 8,
+                                          child: Text(formatSeconds(index)),
+                                        );
+                                      }),
                                 )
                             ],
                           ),
                         ),
-                        SizedBox(
-                          width: MediaQuery.of(context).size.width * 0.5,
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+                Container(
+                    height: settings.waveBGHeight,
+                    color: settings.backgroundColor,
+                    width: MediaQuery.of(context).size.width * 0.5),
+              ],
             ),
           ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 500),
-            right: audioPlayer.state == PlayerState.paused
-                ? MediaQuery.of(context).size.width * 0.525
-                : MediaQuery.of(context).size.width * 0.48,
+          Positioned(
+            right: MediaQuery.of(context).size.width * 0.5,
             child: Container(
               height: settings.waveBGHeight,
               width: 4,

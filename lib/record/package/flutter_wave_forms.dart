@@ -74,7 +74,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
     heights.insertAll(0, addition);
 
     setState(() {
-      regenerateWaves(const Duration(seconds: 1));
+      regenerateWaves(const Duration(seconds: 0));
     });
   }
 
