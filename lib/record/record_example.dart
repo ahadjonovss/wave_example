@@ -17,6 +17,7 @@ class _MyAppState extends State<MyApp> {
   // late Duration maxDuration;
   // late int maxLength;
   // late int wavesCount;
+  bool isRefresh = false;
   bool isInitialized = false;
   Future<String> getFilePath() async {
     Directory directory;
@@ -55,7 +56,6 @@ class _MyAppState extends State<MyApp> {
   String url =
       "https://firebasestorage.googleapis.com/v0/b/fir-example-e58e4.appspot.com/o/some.mp3?alt=media&token=3f94d450-2164-4dad-8741-43e37f71f15d";
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -66,6 +66,7 @@ class _MyAppState extends State<MyApp> {
             children: [
               RecordingWaveDashboard(
                   settings: RecorderSettings(
+                      isRefresh: isRefresh,
                       inActiveColor: Colors.green,
                       activeColor: Colors.black,
                       recorder: audioRecorder,
@@ -108,11 +109,11 @@ class _MyAppState extends State<MyApp> {
                   ),
                   const SizedBox(width: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      setState(() async {
-                        final path = await audioRecorder.pause();
-                        recordAudio();
-                      });
+                    onPressed: () async {
+                      isRefresh = true;
+                      setState(() {});
+
+                      final path = await audioRecorder.stop();
                     },
                     child: const Icon(Icons.restart_alt),
                   ),

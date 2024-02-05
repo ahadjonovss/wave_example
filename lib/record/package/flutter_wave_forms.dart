@@ -16,9 +16,13 @@ class RecorderSettings {
   double waveHeight;
   TextStyle? labelStyle;
   bool showLabels;
+  Duration? currentDuration;
+  bool isRefresh;
 
   RecorderSettings(
       {this.recorder,
+      required this.isRefresh,
+      this.currentDuration,
       required this.height,
       this.showLabels = false,
       this.centerLineWidth,
@@ -42,7 +46,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
   final record = AudioRecorder();
   int additionCount = window.physicalSize.width / window.devicePixelRatio ~/ 16;
 
-  double left = window.physicalSize.width / window.devicePixelRatio;
+  double left = 0;
   late RecorderSettings settings;
   Duration maxDuration = const Duration(minutes: 5);
   int maxLength = window.physicalSize.width / window.devicePixelRatio ~/ 2;
@@ -70,8 +74,10 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
     settings.backgroundColor = widget.settings.backgroundColor ??
         const Color(0xFF007AF5).withOpacity(0.04);
     List addition = List.generate(additionCount, (index) => 0);
-    heights = List.generate(wavesCount, (index) => 0.05);
-    heights.insertAll(0, addition);
+    if (heights.isEmpty) {
+      heights = List.generate(wavesCount, (index) => 0.05);
+      heights.insertAll(0, addition);
+    }
 
     setState(() {
       regenerateWaves(const Duration(seconds: 0));
@@ -82,15 +88,16 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
     waves = List.generate(wavesCount, (index) {
       int currentIndex = index - additionCount;
       bool ableToChange =
-          currentDuration.inMilliseconds ~/ 100 - 1 > currentIndex &&
+          currentDuration.inMilliseconds ~/ 100 > currentIndex &&
               cD.inMicroseconds != 0;
       if (heights[index] == 0.05 && ableToChange) {
         heights[index] = (Random().nextInt(9) + 1) * 0.1;
       }
       return AudioWaveBar(
           heightFactor: heights[index].toDouble(),
-          color:
-              ableToChange ? settings.activeColor! : settings.inActiveColor!);
+          color: heights[index] != 0.05
+              ? settings.activeColor!
+              : settings.inActiveColor!);
     });
 
     setState(() {});
@@ -107,7 +114,8 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
     audioRecorder
         .onAmplitudeChanged(const Duration(milliseconds: 100))
         .listen((state) {
-      cD = Duration(milliseconds: cD.inMilliseconds + 100);
+      cD = settings.currentDuration ??
+          Duration(milliseconds: cD.inMilliseconds + 100);
       double secondP = cD.inMicroseconds * 100 / maxDuration.inMicroseconds;
       double wavePosition = maxLength * secondP / 100;
       left = -wavePosition;
@@ -116,12 +124,23 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
 
     audioRecorder.onStateChanged().listen((event) {
       isRecording = event == RecordState.record;
+
       if (event == RecordState.stop) {
+        setUpSettings();
+
         cD = const Duration(seconds: 0);
-        heights = List.generate(wavesCount, (index) {
-          return 0.05;
-        });
-        regenerateWaves(cD);
+        print("Mana ref ${settings.isRefresh}");
+        if (settings.isRefresh) {
+          print("Isrefresh ${settings.isRefresh}");
+          heights = List.generate(wavesCount, (index) {
+            return 0.05;
+          });
+          List addition = List.generate(additionCount, (index) => 0);
+
+          heights.insertAll(0, addition);
+          left = 0;
+          regenerateWaves(const Duration(seconds: 0));
+        }
       }
       setState(() {});
     });
@@ -135,10 +154,8 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
         children: [
           AnimatedPositioned(
             curve: Curves.easeOut,
-            duration: const Duration(milliseconds: 500),
-            left: left == window.physicalSize.width / window.devicePixelRatio
-                ? 0
-                : left,
+            duration: const Duration(milliseconds: 300),
+            left: left,
             child: SizedBox(
               height:
                   settings.showLabels ? settings.height + 50 : settings.height,
@@ -195,8 +212,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
                                     return SizedBox(
                                         width:
                                             MediaQuery.of(context).size.width *
-                                                    0.5 -
-                                                12);
+                                                0.5);
                                   }
                                   return SizedBox(
                                       width: 10 * 8,
@@ -210,11 +226,8 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
               ),
             ),
           ),
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 500),
-            right: isRecording
-                ? MediaQuery.of(context).size.width * 0.47
-                : MediaQuery.of(context).size.width * 0.526,
+          Positioned(
+            right: MediaQuery.of(context).size.width * 0.5,
             child: Container(
               height: settings.height,
               width: 4,
