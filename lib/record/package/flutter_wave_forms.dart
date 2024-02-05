@@ -45,6 +45,7 @@ class RecordingWaveDashboard extends StatefulWidget {
 class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
   final record = AudioRecorder();
   int additionCount = window.physicalSize.width / window.devicePixelRatio ~/ 16;
+  int difference = 1;
 
   double left = 0;
   late RecorderSettings settings;
@@ -88,7 +89,7 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
     waves = List.generate(wavesCount, (index) {
       int currentIndex = index - additionCount;
       bool ableToChange =
-          currentDuration.inMilliseconds ~/ 100 > currentIndex &&
+          currentDuration.inMilliseconds ~/ 100 > currentIndex + difference &&
               cD.inMicroseconds != 0;
       if (heights[index] == 0.05 && ableToChange) {
         heights[index] = (Random().nextInt(9) + 1) * 0.1;
@@ -141,6 +142,11 @@ class _RecordingWaveDashboardState extends State<RecordingWaveDashboard> {
           left = 0;
           regenerateWaves(const Duration(seconds: 0));
         }
+      }
+      if (event == RecordState.pause) {
+        difference = -1;
+      } else {
+        difference = 1;
       }
       setState(() {});
     });
