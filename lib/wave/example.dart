@@ -98,14 +98,6 @@ class _MyAppState extends State<MyApp> {
                     },
                     child: const Icon(Icons.replay_outlined),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() async {
-                        await audioPlayer.seek(const Duration(seconds: 235));
-                      });
-                    },
-                    child: const Icon(Icons.replay_outlined),
-                  ),
                 ],
               ),
             ],

@@ -63,7 +63,8 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
     } else {
       await audioPlayer.setSourceUrl(settings.path);
     }
-    maxDuration = (await audioPlayer.getDuration())!;
+    maxDuration =
+        (await audioPlayer.getDuration()) ?? const Duration(seconds: 100);
     maxLength = (maxDuration.inMilliseconds ~/ 100 * 8);
     wavesCount = maxDuration.inMilliseconds ~/ 100;
 
