@@ -124,12 +124,13 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
       });
     });
 
-    audioPlayer.onPlayerStateChanged.listen((event) {
+    audioPlayer.onPlayerStateChanged.listen((event) async {
       if (event == PlayerState.playing) {
         difference = 1;
       } else {
         difference = -1;
       }
+      regenerateWaves((await audioPlayer.getCurrentPosition())!);
     });
   }
 
