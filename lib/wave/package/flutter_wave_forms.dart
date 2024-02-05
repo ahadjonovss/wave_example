@@ -54,6 +54,8 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   Duration maxDuration = const Duration(seconds: 100);
   int maxLength = 215;
   int wavesCount = 70;
+  PlayerState lastState = PlayerState.stopped;
+  int difference = 1;
 
   Future<void> setUpSettings() async {
     settings = widget.settings;
@@ -92,7 +94,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
   void regenerateWaves(Duration currentDuration) {
     waves = List.generate(wavesCount, (currentIndex) {
       bool ableToChange =
-          currentDuration.inMilliseconds ~/ 100 > currentIndex &&
+          currentDuration.inMilliseconds ~/ 100 > currentIndex + difference &&
               currentDuration.inMicroseconds != 0;
       return AudioWaveBar(
         heightFactor: heights[currentIndex].toDouble(),
@@ -120,6 +122,14 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
         Duration s = Duration(milliseconds: p.inMilliseconds);
         regenerateWaves(s);
       });
+    });
+
+    audioPlayer.onPlayerStateChanged.listen((event) {
+      if (event == PlayerState.playing) {
+        difference = 1;
+      } else {
+        difference = -1;
+      }
     });
   }
 
@@ -150,6 +160,7 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                       });
                     },
                     onHorizontalDragStart: (details) async {
+                      lastState = audioPlayer.state;
                       await audioPlayer.pause();
                     },
                     onHorizontalDragEnd: (DragEndDetails details) async {
@@ -158,7 +169,9 @@ class _WaveformsDashboardState extends State<WaveformsDashboard> {
                           ((maxDuration.inSeconds.ceil()) * percent ~/ 100)
                               .ceil();
                       audioPlayer.seek(Duration(seconds: second));
-                      await audioPlayer.resume();
+                      if (lastState == PlayerState.playing) {
+                        await audioPlayer.resume();
+                      }
                     },
                     child: SingleChildScrollView(
                       physics: const NeverScrollableScrollPhysics(),

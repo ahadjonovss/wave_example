@@ -57,8 +57,8 @@ class _MyAppState extends State<MyApp> {
                   waveBGHeight: 200,
                   waveHeight: 100,
                   showLabels: true,
-                  isAsset: false,
-                  path: url,
+                  isAsset: true,
+                  path: 'some.mp3',
                 ),
               ),
               const SizedBox(height: 100),
@@ -67,8 +67,8 @@ class _MyAppState extends State<MyApp> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      audioPlayer.pause();
+                    onPressed: () async {
+                      await audioPlayer.pause();
                     },
                     child: const Icon(
                       Icons.pause,
@@ -84,6 +84,7 @@ class _MyAppState extends State<MyApp> {
                       } else {
                         await playAudio();
                       }
+                      print("Salom");
                     },
                     child: const Icon(Icons.play_arrow),
                   ),
